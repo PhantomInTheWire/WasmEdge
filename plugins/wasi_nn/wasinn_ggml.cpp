@@ -3141,13 +3141,16 @@ Expect<ErrNo> compute(WasiNNEnvironment &Env, uint32_t ContextId) noexcept {
   // Main prediction loop.
   LOG_DEBUG(GraphRef.EnableDebugLog, "compute: enter main prediction loop"sv)
   int64_t NRemain = CxtRef.Conf.NPredict;
-  while (NRemain-- > 0) {
+  while (NRemain != 0) {
     ReturnCode = sampleOutput(GraphRef, CxtRef);
     if (ReturnCode != ErrNo::Success) {
       break;
     }
+    if (NRemain > 0) {
+      NRemain--;
+    }
   }
-  if (ReturnCode == ErrNo::EndOfSequence) {
+  if (ReturnCode == ErrNo::EndOfSequence || ReturnCode == ErrNo::ContextFull) {
     ReturnCode = ErrNo::Success;
   }
   LOG_DEBUG(GraphRef.EnableDebugLog,
