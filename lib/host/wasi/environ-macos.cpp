@@ -6,6 +6,7 @@
 
 #include "common/errcode.h"
 #include "host/wasi/environ.h"
+#include "host/wasi/rights.h"
 #include "macos.h"
 
 namespace WasmEdge {
@@ -116,6 +117,33 @@ WasiExpect<void> Environ::procRaise(__wasi_signal_t Signal) const noexcept {
 WasiExpect<void> Environ::schedYield() const noexcept {
   ::sched_yield();
   return {};
+}
+
+namespace {
+inline int getValidFd(uint32_t UserFd, int DefaultFd) {
+  int Fd = static_cast<int>(UserFd);
+  if (Fd < 0) {
+    spdlog::warn("Invalid file descriptor {} falling back to default", UserFd);
+    return DefaultFd;
+  }
+  return Fd;
+}
+} // namespace
+
+void Environ::initStdFds(uint32_t StdIn, uint32_t StdOut, uint32_t StdErr) {
+  // The user is responsible for the lifetime of the provided file descriptors.
+  // The `cleanup` flag is set to false to prevent FdHolder from trying to close
+  // them.
+  const bool Cleanup = false;
+  FdMap.emplace(0, std::make_shared<VINode>(
+                       INode(getValidFd(StdIn, STDIN_FILENO), Cleanup, false),
+                       kStdInDefaultRights, kNoInheritingRights));
+  FdMap.emplace(1, std::make_shared<VINode>(
+                       INode(getValidFd(StdOut, STDOUT_FILENO), Cleanup, false),
+                       kStdOutDefaultRights, kNoInheritingRights));
+  FdMap.emplace(2, std::make_shared<VINode>(
+                       INode(getValidFd(StdErr, STDERR_FILENO), Cleanup, false),
+                       kStdErrDefaultRights, kNoInheritingRights));
 }
 
 } // namespace WASI
