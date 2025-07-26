@@ -13,7 +13,7 @@
 //===----------------------------------------------------------------------===//
 #pragma once
 
-#include "runtime/instance/component.h"
+#include "runtime/instance/component/component.h"
 #include "runtime/instance/module.h"
 
 #include <mutex>
@@ -98,6 +98,18 @@ public:
     return {};
   }
 
+  /// Unregister a named module from this store.
+  Expect<void> unregisterModule(std::string_view Name) {
+    std::unique_lock Lock(Mutex);
+    auto Iter = NamedMod.find(Name);
+    if (Iter == NamedMod.cend()) {
+      return Unexpect(ErrCode::Value::UnknownImport);
+    }
+    (const_cast<Instance::ModuleInstance *>(Iter->second))->unlinkStore(this);
+    NamedMod.erase(Iter);
+    return {};
+  }
+
   void addNamedModule(std::string_view Name,
                       const Instance::ModuleInstance *Inst) {
     std::unique_lock Lock(Mutex);
@@ -119,10 +131,10 @@ public:
   }
 
 private:
+  friend class Executor::Executor;
+
   /// \name Mutex for thread-safe.
   mutable std::shared_mutex Mutex;
-
-  friend class Executor::Executor;
 
   /// Collect the instantiation failed module.
   void recycleModule(std::unique_ptr<Instance::ModuleInstance> &&Mod) {
@@ -134,6 +146,7 @@ private:
   /// \name Soft module are those temporary added by component linking process
   std::map<std::string, const Instance::ModuleInstance *, std::less<>>
       SoftNamedMod;
+  /// \name Component name mapping.
   std::map<std::string, const Instance::ComponentInstance *, std::less<>>
       NamedComp;
 
