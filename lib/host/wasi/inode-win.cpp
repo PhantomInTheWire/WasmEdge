@@ -1025,6 +1025,14 @@ WasiExpect<void> INode::fdPwrite(Span<Span<const uint8_t>> IOVs,
     NWritten += NumberOfBytesWrite;
   }
 
+  if ((SavedVFSFlags & VFS::Write) && (SavedFdFlags & __WASI_FDFLAGS_APPEND)) {
+    LARGE_INTEGER_ NewPos;
+    NewPos.QuadPart = 0;
+    if (!SetFilePointerEx(Handle, NewPos, nullptr, FILE_CURRENT_)) {
+      return WasiUnexpected(detail::fromLastError(GetLastError()));
+    }
+  }
+
   return Result;
 }
 
