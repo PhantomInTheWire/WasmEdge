@@ -70,7 +70,9 @@ jobs:
             -DWASMEDGE_LINK_LLVM_STATIC=ON \
             -DWASMEDGE_BUILD_PACKAGE="TGZ" \
             -DCMAKE_INSTALL_PREFIX:PATH=$GITHUB_WORKSPACE/output .
-          cmake --build build
+           cmake --build build
+      - name: Check symbols
+        run: bash .github/scripts/check_symbols.sh
       - name: Test WasmEdge
         run: |
           eval $(/opt/homebrew/bin/brew shellenv)
