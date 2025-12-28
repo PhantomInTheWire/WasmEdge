@@ -68,6 +68,8 @@ jobs:
           fi
           cmake --build build
           cmake --build build --target package
+      - name: Check symbols
+        run: bash .github/scripts/check_symbols.sh
       - name: Test
         if: ${{ !matrix.coverage && matrix.tests }}
         run: |
