@@ -45,15 +45,27 @@ jobs:
         run: |
           brew uninstall cmake # conflict with the one used by WasmEdge/llvm/lld
           brew tap WasmEdge/llvm
-          brew install llvm ninja wabt grpc
-          brew install --build-from-source WasmEdge/llvm/lld
+      - name: Install Homebrew tools - non-release
+        if: ${{ !inputs.release }}
+        uses: tecolicom/actions-use-homebrew-tools@v1
+        with:
+          tools: llvm ninja wabt grpc
+      - name: Install custom lld - non-release
+        if: ${{ !inputs.release }}
+        run: brew install --build-from-source WasmEdge/llvm/lld
       - name: Setup build environment - release
         if: ${{ inputs.release }}
         run: |
           brew uninstall cmake # conflict with the one used by WasmEdge/llvm/lld
           brew tap WasmEdge/llvm
-          brew install llvm ninja wabt
-          brew install --build-from-source WasmEdge/llvm/lld
+      - name: Install Homebrew tools - release
+        if: ${{ inputs.release }}
+        uses: tecolicom/actions-use-homebrew-tools@v1
+        with:
+          tools: llvm ninja wabt
+      - name: Install custom lld - release
+        if: ${{ inputs.release }}
+        run: brew install --build-from-source WasmEdge/llvm/lld
       - name: Set environment variables for release
         if: ${{ inputs.release }}
         run: |
