@@ -50,10 +50,10 @@ jobs:
         with:
           fetch-depth: 0
       - name: Build and install dependencies
-        shell: bash
-        run: |
-          brew install ninja opencv rust ffmpeg@7
-          brew unlink ffmpeg
+        uses: tecolicom/actions-use-homebrew-tools@v1
+        with:
+          tools: ninja opencv rust ffmpeg@7
+      - run: brew unlink ffmpeg
       - name: Build ${{ matrix.plugin }}
         shell: bash
         run: |
