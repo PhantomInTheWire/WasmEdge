@@ -1,0 +1,74 @@
+name: Install and Cache Homebrew Tools
+
+description: >
+  Installs Homebrew packages and caches them for later use.
+  Based on tecolicom/actions-use-homebrew-tools but implemented 
+  with pure bash for maintainability.
+
+inputs:
+  tools:
+    description: 'Space-separated list of Homebrew packages to install'
+    required: true
+  cache:
+    description: 'Cache strategy (yes/no/workflow)'
+    required: false
+    default: 'yes'
+  verbose:
+    description: 'Enable verbose output'
+    required: false
+    default: 'false'
+
+outputs:
+  cache-hit:
+    description: 'Whether the cache was hit'
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup cache key
+      id: setup
+      shell: bash
+      run: |
+        # Generate cache key based on tools, brew version, and system
+        BREW_VERSION=$(brew --version | sed -n '1p')
+        SYSTEM=$(uname -mrs)
+        TOOLS_HASH=$(echo "${{ inputs.tools }}" | shasum | awk '{print $1}')
+        BREW_HASH=$(echo "$BREW_VERSION" | shasum | awk '{print $1}')
+        SYS_HASH=$(echo "$SYSTEM" | shasum | awk '{print $1}')
+
+        KEY="homebrew-tools-${TOOLS_HASH}-${BREW_HASH}-${SYS_HASH}"
+        echo "key=$KEY" >> "$GITHUB_OUTPUT"
+        echo "prefix=$(brew --prefix)" >> "$GITHUB_OUTPUT"
+
+        echo "Cache key: $KEY"
+        echo "Brew version: $BREW_VERSION"
+        echo "System: $SYSTEM"
+
+    - name: Restore cache
+      id: cache
+      if: inputs.cache != 'no'
+      uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v5.0.0
+      with:
+        path: ${{ github.workspace }}/.homebrew-cache.tar.gz
+        key: ${{ steps.setup.outputs.key }}
+
+    - name: Install and cache tools
+      id: install
+      shell: bash
+      run: |
+        SCRIPT="${{ github.workspace }}/.github/scripts/homebrew_cache_handler.sh"
+
+        if [ "${{ steps.cache.outputs.cache-hit }}" = "true" ]; then
+          echo "Cache hit detected - extracting..."
+          bash "$SCRIPT" "${{ inputs.tools }}" \
+            "${{ github.workspace }}/.homebrew-cache.tar.gz" \
+            "true" \
+            "${{ inputs.verbose }}"
+        else
+          echo "Cache miss - installing tools..."
+          bash "$SCRIPT" "${{ inputs.tools }}" \
+            "${{ github.workspace }}/.homebrew-cache.tar.gz" \
+            "false" \
+            "${{ inputs.verbose }}"
+        fi
