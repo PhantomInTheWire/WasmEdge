@@ -48,8 +48,11 @@ jobs:
           brew tap WasmEdge/llvm
       - name: Install Homebrew tools - non-release
         if: ${{ !inputs.release }}
-        run: |
-          brew install llvm ninja wabt grpc
+        uses: ./.github/actions/install-and-cache-homebrew-tools
+        with:
+          tools: llvm ninja wabt grpc
+          cache: yes
+          verbose: false
       - name: Get lld version
         if: ${{ !inputs.release }}
         id: lld-version-non-release
@@ -84,8 +87,11 @@ jobs:
           brew tap WasmEdge/llvm
       - name: Install Homebrew tools - release
         if: ${{ inputs.release }}
-        run: |
-          brew install llvm ninja wabt
+        uses: ./.github/actions/install-and-cache-homebrew-tools
+        with:
+          tools: llvm ninja wabt
+          cache: yes
+          verbose: false
       - name: Get lld version
         if: ${{ inputs.release }}
         id: lld-version-release
